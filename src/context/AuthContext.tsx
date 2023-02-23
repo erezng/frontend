@@ -1,26 +1,50 @@
-import axios from "axios";
+import { createContext,useEffect,useState } from 'react';
+import { AuthContextType, ChildProps } from '../@types'
 
-const baseURL = "http://localhost:3001/api/auth";
+  const initialState:AuthContextType={
+    isLoggedIn:false,
+    login(username,email,token){},
+    logout(){}
+  };
 
-const register = (username: string, email: string, password: string) => {
-  return axios.post(baseURL + "/signup", { username, email, password });
-};
-const login = (email: string, password: string) => {
-  return axios.post(baseURL + "/signin", { email, password }).then((res) => {
-    const token = res.data.accessToken;
-    const email = res.data.email;
-    const username = res.data.username;
-    if (token) {
-      localStorage.setItem("token", token);
-      localStorage.setItem("user", username);
+  const AuthContext=createContext<AuthContextType>(initialState);
+
+  const AuthContextProvider=({children}:ChildProps)=>{
+    useEffect(() => {
+      const userData=localStorage.getItem("user");
+      if(userData){
+        const user=JSON.parse(userData);
+        const token=user.token;
+        const email=user.email;
+        const username=user.username;
+        login(username,email,token)
+      }
+    }, [])
+    
+    const [isLoggedIn, setIsLoggedIn] = useState(false);
+    const [username, setUsername] = useState<string|undefined>(undefined);
+    const [email, setEmail] = useState<string|undefined>(undefined);
+    const [token, setToken] = useState<string|undefined>(undefined);
+
+    const login=(username:string,email:string,token:string)=>{
+      setIsLoggedIn(true);
+      setUsername(username);
+      setEmail(email);
+      setToken(token);
+    }    
+    const logout=()=>{
+      setIsLoggedIn(false);
+      setUsername(undefined);
+      setEmail(undefined);
+      setToken(undefined);
     }
-    return res.data;
-  });
-};
-const logout = () => {
-  localStorage.removeItem("token");
-};
-export { register, login, logout };
-const authService = { register, login, logout };
-
-export default authService;
+    const contextValues={isLoggedIn,username,email,token,login,logout}
+  
+  return (
+    <AuthContext.Provider value={contextValues}>
+      {children}
+    </AuthContext.Provider>
+    )
+  }
+export {AuthContext,AuthContextProvider}
+export default AuthContext
